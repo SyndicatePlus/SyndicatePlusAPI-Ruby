@@ -60,7 +60,7 @@ But you can also use the *instance* method to get a proxy-object:
      => "Unox"
 
     # search for any kind of product on syndicatePlus with keywords
-    results = search('Unox')
+    results = search_product('Unox')
     results.first.Name
     => "Activia"
 
