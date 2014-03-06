@@ -30,11 +30,11 @@ Or install it yourself as:
 
 Rails style initializer (config/initializers/syndicatePlusApi.rb):
 
-   SyndicatePlusApi::Configuration.configure do |config|
-      config.secret        = 'your-secret'
-      config.key           = 'your-key'
-      config.version = 'your-version'
-    end
+       SyndicatePlusApi::Configuration.configure do |config|
+          config.secret        = 'your-secret'
+          config.key           = 'your-key'
+          config.version = 'your-version'
+        end
 
 ## Usage
 SyndicatePlusApi is designed as a module, so you can include it into any object you like:
