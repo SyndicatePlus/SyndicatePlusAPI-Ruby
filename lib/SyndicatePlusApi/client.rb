@@ -207,17 +207,11 @@ module SyndicatePlusApi
     log(:info, "performing rest call to url='#{url}'")
     #response = RestClient.get(url, {:content_type => "application/x-www-form-urlencode", :accept => :json})
     response = open(url,
-                    "header" => "Authorization: "+ signed +"\r\n"+"Content-Type: application/x-www-form-urlencode\r\n")
-    if response.code == 200
-      # force utf-8 chars, works only on 1.9 string
-      resp = response.body
+                    "header" => "Authorization: "+ signed +"\r\n"+"Content-Type: application/x-www-form-urlencode\r\n").read()
+      resp = response
       resp = resp.force_encoding('UTF-8') if resp.respond_to? :force_encoding
       log(:debug, "got response='#{resp}'")
       productJson = Crack::JSON.parse(resp)
-   else
-      log(:error, "got response='#{response.body}'")
-      raise "request failed with response-code='#{response.code}'"
-    end
   end
 
     def create_signed_query_string(method, params, path)
@@ -262,4 +256,3 @@ module SyndicatePlusApi
     end
   end
 end
-
