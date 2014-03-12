@@ -32,7 +32,7 @@ module SyndicatePlusApi
       :key           => '',
       :associate_tag => '',
       :host          => 'http://api.syndicateplus.com',
-      :version       => '0',
+      :version       => '1',
       :logger        => Logger.new(STDERR)
     })
   end

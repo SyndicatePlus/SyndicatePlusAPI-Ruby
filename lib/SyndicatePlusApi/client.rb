@@ -12,7 +12,7 @@ require 'open-uri'
 module SyndicatePlusApi
   module Client
 
-    DIGEST  = OpenSSL::Digest::Digest.new('sha1')
+    DIGEST  = OpenSSL::Digest::SHA1.new
 
     # Convenience method to create an SyndicatePlusApi client.
     #
@@ -225,7 +225,7 @@ module SyndicatePlusApi
       # yeah, you really need to sign the get-request not the query
       endPoint = buildApiEndPoint(Configuration.host, path, Configuration.version)
       request_to_sign = "#{Configuration.secret}+#{method}+#{endPoint}+#{query}+#{nonce}+ #{timestamp}"
-      hmac = Digest::SHA1.hexdigest(request_to_sign)
+      hmac = DIGEST.digest(request_to_sign)
       # don't forget to remove the newline from base64
       signature = CGI.escape(hmac.chomp)
       header = "Key=\""+ key +"\",Timestamp=\""+ "#{timestamp}" +"\",Nonce=\""+ "#{nonce}" +"\",Signature=\""+ signature +"\""
@@ -256,3 +256,4 @@ module SyndicatePlusApi
     end
   end
 end
+
