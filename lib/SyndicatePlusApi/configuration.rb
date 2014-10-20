@@ -21,19 +21,23 @@ module SyndicatePlusApi
   # [key] the API access key (required)
   # [host] the host, which defaults to 'http://api.syndicateplus.com'
   # [logger] a different logger than logging to STDERR (nil for no logging)
-  # [version] a custom version of the API calls. Default is 0
+  # [version] a custom version of the API calls. Default is 1
+  # [cache] a cache object supporting read and write like {ActiveSupport::Cache::Store}
+  # [cache_expires_in] number of seconds that cache entries remain valid. Default is 4 days
 
   class Configuration
     include Confiture::Configuration
-    confiture_allowed_keys(:secret, :key, :host, :version, :logger)
+    confiture_allowed_keys(:secret, :key, :host, :version, :cache, :cache_expires_in, :logger)
     confiture_mandatory_keys(:secret, :key)
     confiture_defaults({
-      :secret        => '',
-      :key           => '',
-      :associate_tag => '',
-      :host          => 'http://api.syndicateplus.com',
-      :version       => '1',
-      :logger        => Logger.new(STDERR)
+      :secret           => '',
+      :key              => '',
+      :associate_tag    => '',
+      :host             => 'http://api.syndicateplus.com',
+      :version          => '1',
+      :cache            => nil,
+      :cache_expires_in => 4 * 24*60*60,
+      :logger           => Logger.new(STDERR)
     })
   end
 end

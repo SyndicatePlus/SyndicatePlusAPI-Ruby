@@ -46,7 +46,7 @@ module SyndicatePlusApi
       params = {}
       path = "/products/product/#{productId}"
       method = 'GET'
-      product = call(method, params, path)
+      product = call_with_cache(method, params, path)
       product = convert_to_object(product)
       product
     end
@@ -62,7 +62,7 @@ module SyndicatePlusApi
       params = {:ean => ean}
       path = "/products/product"
       method = 'GET'
-      product = call(method,params, path)
+      product = call_with_cache(method,params, path)
       product = convert_to_object(product)
       product
     end
@@ -78,7 +78,7 @@ module SyndicatePlusApi
       params = {q: "productname:#{CGI.escape(productQuery.to_s)}"}
       path = "/products"
       method = 'GET'
-      product_list = call(method,params, path)
+      product_list = call_with_cache(method,params, path)
       product_list.each do |p|
         products << Hashie::Mash.new(p)
       end
@@ -94,7 +94,7 @@ module SyndicatePlusApi
       params = {}
       path = "/brands/brand/#{brandId}"
       method = 'GET'
-      brand = call(method, params, path)
+      brand = call_with_cache(method, params, path)
       brand = convert_to_object(brand)
       brand
     end
@@ -109,7 +109,7 @@ module SyndicatePlusApi
       params = {q: "name:#{CGI.escape(brandQuery.to_s)}"}
       path = "/brands"
       method = 'GET'
-      brand_list = call(method,params, path)
+      brand_list = call_with_cache(method,params, path)
       brand_list.each do |p|
         brands << Hashie::Mash.new(p)
       end
@@ -125,7 +125,7 @@ module SyndicatePlusApi
       params = {}
       path = "/manufacturers/manufacturer/#{manufacturerId}"
       method = 'GET'
-      manufacturer = call(method, params, path)
+      manufacturer = call_with_cache(method, params, path)
       manufacturer = convert_to_object(manufacturer)
       manufacturer
     end
@@ -140,7 +140,7 @@ module SyndicatePlusApi
       params = {:ean => ean}
       path = "/manufacturers/manufacturer"
       method = 'GET'
-      manufacturer = call(method,params, path)
+      manufacturer = call_with_cache(method,params, path)
       manufacturer = convert_to_object(manufacturer)
       manufacturer
     end
@@ -156,7 +156,7 @@ module SyndicatePlusApi
       params = {q: "name=#{CGI.escape(manufacturerQuery.to_s)}"}
       path = "/manufacturers"
       method = 'GET'
-      manufacturer_list = call(method,params, path)
+      manufacturer_list = call_with_cache(method,params, path)
       manufacturer_list.each do |m|
         manufacturers << Hashie::Mash.new(m)
       end
@@ -167,7 +167,7 @@ module SyndicatePlusApi
       path = "/nutrients"
       params={}
       method = 'GET'
-      nutrient_list = call(method,params, path)
+      nutrient_list = call_with_cache(method,params, path)
       nutrient_list.each do |n|
         nutrients << Hashie::Mash.new(n)
       end
@@ -178,7 +178,7 @@ module SyndicatePlusApi
       path = "/allergens"
       params={}
       method = 'GET'
-      allergen_list = call(method,params, path)
+      allergen_list = call_with_cache(method,params, path)
       allergen_list.each do |a|
         allergens << Hashie::Mash.new(a)
       end
@@ -190,6 +190,12 @@ module SyndicatePlusApi
 
     def convert_to_object(response)
       Hashie::Mash.new(response)
+    end
+
+    def call_with_cache(method, params, path)
+      SyndicatePlusApi::Cache.with_cache({params: params, path: path, version: Configuration.version}) do
+        call(method, params, path)
+      end
     end
 
     def call(method, params, path)

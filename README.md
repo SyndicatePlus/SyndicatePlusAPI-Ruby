@@ -69,7 +69,13 @@ But you can also use the *instance* method to get a proxy-object:
     result.Name
     => "Unox"
 
+## Cache
+To enable caching, set the `config.cache` key in this gem's configuration to a
+cache store that supports `read()` and `write()` like `ActiveSupport::Cache::Store`.
+The default expiration time is 4 days, but you can modify that by setting the
+`config.cache_expires_in` configuration key.
 
+## Contributions
 1. Fork it ( http://github.com/<my-github-username>/SyndicatePlusApi/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
