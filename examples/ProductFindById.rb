@@ -3,8 +3,8 @@ require 'SyndicatePlusApi'
 #initlze with Gem with Required Key
 
 SyndicatePlusApi::Configuration.configure do |config|
-  config.secret        = 'your-secret'
-  config.key           = 'your-key'
+  config.secret  = 'your-secret'
+  config.key     = 'your-key'
   config.version = 'your-version'
 end
 

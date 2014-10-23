@@ -2,7 +2,7 @@
 require 'rexml/document'
 require 'crack/json'
 require 'cgi'
-require 'base64'
+require 'digest/sha1'
 require 'uuid'
 require 'rest-client'
 require 'json'
@@ -11,8 +11,6 @@ require 'open-uri'
 
 module SyndicatePlusApi
   module Client
-
-    DIGEST  = OpenSSL::Digest::SHA1.new
 
     # Convenience method to create an SyndicatePlusApi client.
     #
@@ -48,7 +46,7 @@ module SyndicatePlusApi
       params = {}
       path = "/products/product/#{productId}"
       method = 'GET'
-      product = call(method, params, path)
+      product = call_with_cache(method, params, path)
       product = convert_to_object(product)
       product
     end
@@ -64,7 +62,7 @@ module SyndicatePlusApi
       params = {:ean => ean}
       path = "/products/product"
       method = 'GET'
-      product = call(method,params, path)
+      product = call_with_cache(method,params, path)
       product = convert_to_object(product)
       product
     end
@@ -77,10 +75,10 @@ module SyndicatePlusApi
     #
     def search_product(productQuery)
       products = []
-      params = {:"q=productname" => CGI.escape(productQuery.to_s)}
+      params = {q: "productname:#{CGI.escape(productQuery.to_s)}"}
       path = "/products"
       method = 'GET'
-      product_list = call(method,params, path)
+      product_list = call_with_cache(method,params, path)
       product_list.each do |p|
         products << Hashie::Mash.new(p)
       end
@@ -92,15 +90,15 @@ module SyndicatePlusApi
     #   item = getBrandById 5798
     #   Where item  is brand fetched from SyndicatePlus using Id
     #
-
     def getBrandById(brandId)
       params = {}
       path = "/brands/brand/#{brandId}"
       method = 'GET'
-      brand = call(method, params, path)
+      brand = call_with_cache(method, params, path)
       brand = convert_to_object(brand)
       brand
     end
+
     # Performs an +Brand Search + REST call against the SyndicatePlus API.
     #
     #   items = search 'Unox'
@@ -108,10 +106,10 @@ module SyndicatePlusApi
     #
     def search_brand(brandQuery)
       brands = []
-      params = {:"q=name" => CGI.escape(brandQuery.to_s)}
+      params = {q: "name:#{CGI.escape(brandQuery.to_s)}"}
       path = "/brands"
       method = 'GET'
-      brand_list = call(method,params, path)
+      brand_list = call_with_cache(method,params, path)
       brand_list.each do |p|
         brands << Hashie::Mash.new(p)
       end
@@ -123,28 +121,26 @@ module SyndicatePlusApi
     #   item = getmanufacturerById 5798
     #   Where item  is manufacturer fetched from SyndicatePlus using Id
     #
-
     def getManufacturerById(manufacturerId)
       params = {}
       path = "/manufacturers/manufacturer/#{manufacturerId}"
       method = 'GET'
-      manufacturer = call(method, params, path)
+      manufacturer = call_with_cache(method, params, path)
       manufacturer = convert_to_object(manufacturer)
       manufacturer
     end
 
 
-# Performs an +manufacturer Search By Ean + REST call against the SyndicatePlus API.
-#
-#   item = getmanufacturerByEan 'Unox'
-#   Where item  is manufacturer fetched from SyndicatePlus using Ean
-#
-
+    # Performs an +manufacturer Search By Ean + REST call against the SyndicatePlus API.
+    #
+    #   item = getmanufacturerByEan 'Unox'
+    #   Where item  is manufacturer fetched from SyndicatePlus using Ean
+    #
     def getManufacturerByEan(ean)
       params = {:ean => ean}
       path = "/manufacturers/manufacturer"
       method = 'GET'
-      manufacturer = call(method,params, path)
+      manufacturer = call_with_cache(method,params, path)
       manufacturer = convert_to_object(manufacturer)
       manufacturer
     end
@@ -155,13 +151,12 @@ module SyndicatePlusApi
     #   items = search 'Unox'
     #   Where items are list of manufacturers fetched from SyndicatePlus
     #
-
     def search_manufacturer(manufacturer)
       manufacturers = []
-      params = {:"q=name" => CGI.escape(manufacturerQuery.to_s)}
+      params = {q: "name=#{CGI.escape(manufacturerQuery.to_s)}"}
       path = "/manufacturers"
       method = 'GET'
-      manufacturer_list = call(method,params, path)
+      manufacturer_list = call_with_cache(method,params, path)
       manufacturer_list.each do |m|
         manufacturers << Hashie::Mash.new(m)
       end
@@ -172,7 +167,7 @@ module SyndicatePlusApi
       path = "/nutrients"
       params={}
       method = 'GET'
-      nutrient_list = call(method,params, path)
+      nutrient_list = call_with_cache(method,params, path)
       nutrient_list.each do |n|
         nutrients << Hashie::Mash.new(n)
       end
@@ -183,7 +178,7 @@ module SyndicatePlusApi
       path = "/allergens"
       params={}
       method = 'GET'
-      allergen_list = call(method,params, path)
+      allergen_list = call_with_cache(method,params, path)
       allergen_list.each do |a|
         allergens << Hashie::Mash.new(a)
       end
@@ -193,26 +188,29 @@ module SyndicatePlusApi
 
     private
 
-   def convert_to_object(response)
-     Hashie::Mash.new(response)
-   end
+    def convert_to_object(response)
+      Hashie::Mash.new(response)
+    end
 
-  def call(method, params, path)
-    Configuration.validate!
+    def call_with_cache(method, params, path)
+      SyndicatePlusApi::Cache.with_cache({params: params, path: path, version: Configuration.version}) do
+        call(method, params, path)
+      end
+    end
 
-    log(:debug, "calling with params=#{params}")
-    signed = create_signed_query_string(method,params, path)
+    def call(method, params, path)
+      Configuration.validate!
 
-    url = "#{buildApiEndPoint(Configuration.host,path,Configuration.version)}?#{create_query(params)}"
-    log(:info, "performing rest call to url='#{url}'")
-    #response = RestClient.get(url, {:content_type => "application/x-www-form-urlencode", :accept => :json})
-    response = open(url,
-                    "header" => "Authorization: "+ signed +"\r\n"+"Content-Type: application/x-www-form-urlencode\r\n").read()
-      resp = response
-      resp = resp.force_encoding('UTF-8') if resp.respond_to? :force_encoding
-      log(:debug, "got response='#{resp}'")
-      productJson = Crack::JSON.parse(resp)
-  end
+      log(:debug, "calling with params=#{params}")
+      signed = create_signed_query_string(method,params, path)
+
+      url = buildApiEndPoint(Configuration.host,path,Configuration.version)
+      url += "?#{create_query(params)}" unless params.empty?
+      log(:info, "performing rest call to url='#{url}'")
+      response = RestClient.get(url, {content_type: "application/x-www-form-urlencode", accept: :json, authorization: signed})
+      log(:debug, "got response='#{response}'")
+      productJson = Crack::JSON.parse(response)
+    end
 
     def create_signed_query_string(method, params, path)
       # utc timestamp needed for signing
@@ -224,11 +222,10 @@ module SyndicatePlusApi
 
       # yeah, you really need to sign the get-request not the query
       endPoint = buildApiEndPoint(Configuration.host, path, Configuration.version)
-      request_to_sign = "#{Configuration.secret}+#{method}+#{endPoint}+#{query}+#{nonce}+ #{timestamp}"
-      hmac = DIGEST.digest(request_to_sign)
-      # don't forget to remove the newline from base64
-      signature = CGI.escape(hmac.chomp)
-      header = "Key=\""+ key +"\",Timestamp=\""+ "#{timestamp}" +"\",Nonce=\""+ "#{nonce}" +"\",Signature=\""+ signature +"\""
+      request_to_sign = "#{Configuration.secret}#{method}#{endPoint}#{query}#{nonce}#{timestamp}"
+      #log(:debug, request_to_sign)
+      signature = Digest::SHA1.base64digest(request_to_sign)
+      header = "Key=\"#{key}\",Timestamp=\"#{timestamp}\",Nonce=\"#{nonce}\",Signature=\"#{signature}\""
       log(:debug, header)
       header
     end
@@ -237,7 +234,7 @@ module SyndicatePlusApi
       params.map do |key, value|
         value = value.collect{|v| v.to_s.strip}.join(',') if value.is_a?(Array)
         "#{CGI.escape(key.to_s)}=#{CGI.escape(value.to_s)}"
-      end.sort.join('&').gsub('+','%20') # signing needs to order the query alphabetically
+      end.sort.join('&').gsub('+','%20').gsub(/%[0-9A-Z]{2}/) {|r| r.downcase} # signing needs to order the query alphabetically
     end
 
     def log(severity, message)
